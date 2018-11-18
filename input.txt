@@ -1,0 +1,1 @@
+!A!B!C!D  + !A!B!CD + !A!BC!D  +!AB!CD + !ABC!D + !ABCD + A!B!C!D  + A!B!CD  +A!BC!D   + ABC!D  
