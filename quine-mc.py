@@ -1,3 +1,5 @@
+import sys
+
 # dictionary of minterms
 minterms = {
 	"!A!B!C!D": "0000", "!A!B!CD": "0001", "!A!BC!D": "0010", "!A!BCD": "0011",
@@ -7,10 +9,10 @@ minterms = {
 }
 
 bin_dec = {
-	0: "0000", 1: "0001", 2: "0010", 3: "0011",
-	4: "0100", 5: "0101", 6: "0110", 7: "0111",
-	8: "1000", 9: "1001", 10: "1010", 11: "1011",
-	12: "1100", 13: "1101", 14: "1110", 15: "1111",
+	"0000": 0, "0001": 1, "0010": 2, "0011": 3,
+	"0100": 4, "0101": 5, "0110": 6, "0111":7,
+	"1000": 8, "1001": 9, "1010": 10, "1011": 11,
+	"1100": 12, "1101": 13, "1110": 14, "1111": 15,
 }
 
 def get_minterms(eq, list_mint):
@@ -18,10 +20,11 @@ def get_minterms(eq, list_mint):
 	Args: equation in SOP format.
 	Returns: groups of minterms divided by number of 1's.
 	"""
-	eq = eq.replace(" ", "").replace("*", "")
+	eq = eq.replace(" ", "").replace("*", "").replace("(", "").replace(")", "")
 	eq = eq.upper()
 	mint = eq.split('+')
-
+	mint[len(mint) - 1] = mint[len(mint) - 1].strip('\n')
+	
 	groups = [set() for i in range(0, 5)]
 
 	for i in range(len(mint)):
@@ -52,19 +55,27 @@ def comp_minterms(mint1, mint2):
 
 check = set()
 uncheck = set()
+label = set()
 
 def get_implicant_prime(groups):
+	""" Compares minterms with each other, searching for implicant primes
+	Args: groups to be compared
+	Returns: implicant primes
+	"""
 	if(set.union(*groups) == set()):
 		imp_prime = uncheck - check
-		print(imp_prime)
-		print_implicant_prime(imp_prime)
 		return imp_prime
 
 	else:
 		c = [set() for i in range(len(groups) - 1)]
-		
 		for i in range(len(groups) - 1):
 			for term1 in groups[i]:
+				if(len(groups[i]) == 1):
+					uncheck.add(term1)
+				#	try:
+				#		label.append(bin_dec[term1])
+				#	except:
+				#		continue
 				for term2 in groups[i+1]:
 					comp = comp_minterms(term1, term2)
 					if(comp!=False):
@@ -74,6 +85,11 @@ def get_implicant_prime(groups):
 					else:
 						uncheck.add(term1)
 						uncheck.add(term2)
+						try:
+							label.add(bin_dec[term2])
+							label.add(bin_dec[term1])
+						except:
+							continue
 		return get_implicant_prime(c)
 
 def bin_lit(expression):
@@ -104,13 +120,16 @@ def print_implicant_prime(list_imp):
 
 def main():
 	list_mint = []
-	eq = open('input.txt', 'r').readline()
-	
+	eq = open('ava.txt', 'r').readline()
+	print(eq)
 	# first stage
 	groups = get_minterms(eq, list_mint)
-	get_implicant_prime(groups)
 	
-	
+	print(list_mint)
+
+	implic_prime = get_implicant_prime(groups)
+	print(implic_prime)
+	print_implicant_prime(implic_prime)
+
 if __name__== "__main__":
 	main()
-
