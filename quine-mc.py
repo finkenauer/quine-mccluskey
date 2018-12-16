@@ -1,4 +1,6 @@
 import sys
+import itertools	
+import numpy as np
 
 # dictionary of minterms
 minterms = {
@@ -29,12 +31,23 @@ def get_minterms(eq, list_mint):
 
 	for i in range(len(mint)):
 		exp = minterms.get(mint[i]) 		# get minterms
-		n1 = exp.count('1')					# count '1's
+		n1 = exp.count('1')			# count '1's
 		groups[n1].add(exp)
-
-		list_mint.append(exp)				# list of minterms
+		list_mint.append(exp)			# list of minterms
 
 	return groups
+
+def label_minterm(list_mint):
+	""" Return the labels of the minterms
+	Args: list of minterms
+	"""
+	label = []
+	for i in range(len(list_mint)):
+		lab = bin_dec.get(list_mint[i])
+		label.append(lab)
+
+	return label
+
 
 def comp_minterms(mint1, mint2):
 	""" Compares if there is a unique bit difference in the same position of two minterms
@@ -55,7 +68,6 @@ def comp_minterms(mint1, mint2):
 
 check = set()
 uncheck = set()
-label = set()
 
 def get_implicant_prime(groups):
 	""" Compares minterms with each other, searching for implicant primes
@@ -72,10 +84,8 @@ def get_implicant_prime(groups):
 			for term1 in groups[i]:
 				if(len(groups[i]) == 1):
 					uncheck.add(term1)
-				#	try:
-				#		label.append(bin_dec[term1])
-				#	except:
-				#		continue
+				if(len(groups[i+1]) == 0):
+					uncheck.add(term1)
 				for term2 in groups[i+1]:
 					comp = comp_minterms(term1, term2)
 					if(comp!=False):
@@ -85,11 +95,6 @@ def get_implicant_prime(groups):
 					else:
 						uncheck.add(term1)
 						uncheck.add(term2)
-						try:
-							label.add(bin_dec[term2])
-							label.add(bin_dec[term1])
-						except:
-							continue
 		return get_implicant_prime(c)
 
 def bin_lit(expression):
@@ -114,22 +119,224 @@ def print_implicant_prime(list_imp):
 	""" Print the implicant primes in format of minterms
 	Args: list of implicant primes
 	"""
-	for i in list_imp:
-		print(bin_lit(i))
+	print("Primos Implicantes: "),
 
+	for i in list_imp:
+		if(i == list(list_imp)[len(list_imp) - 1]):
+			print(bin_lit(i))#,
+		else:
+			print(bin_lit(i) + ' +'),
+
+def implicant_label(mint):
+	""" Return the label of a given minterm
+	Args: minterm (ex.: 1101)
+	Returns: label (ex.: 13)
+	"""
+	sum_one = 0
+	sum_dc = 0
+
+	dc = []
+	imp_label = set()
+
+	for i in range(len(mint)):
+		if(mint[i] == '-'):
+			dc.append(pow(2,len(mint) - i - 1))
+			sum_dc += pow(2,len(mint) - i - 1)
+		else:
+			sum_one += int(mint[i]) * pow(2,len(mint) - i - 1)
+
+	for i in range(len(dc)):
+		imp_label.add(sum_one + dc[i])
+
+	imp_label.add(sum_one)
+	imp_label.add(sum_one + sum_dc)
+
+	return imp_label
+
+def list_label_imp(implic_prime):
+	""" Return a list of labels from implicant primes
+	Args: list of implicant primes
+	"""
+	list_lab = []
+	
+	for i in range(len(implic_prime)):
+		aux = list(implic_prime)[i]
+		list_lab.append(implicant_label(aux))
+
+	return list_lab
+
+
+def essential_prime(chart):
+	""" Find the essential primes in a chart, searching for the columns with an unique '1'
+	Args: Chart of implicant primes * minterms
+	Returns: list of essential primes
+	"""
+	prime = set()
+	for col in range(len(chart[0])):
+		count = 0
+		pos = 0
+		for row in range(len(chart)):
+			if(chart[row][col] == 1):
+				count += 1
+				pos = row
+		if(count == 1):
+			prime.add(pos)
+
+	return prime
+
+def print_essential_prime(prime, list_imp):
+	""" Print the essential primes in format of minterms
+	Args: list of implicant primes and labels of essential primes
+	"""
+	essential = list(prime)
+	count = -1
+
+	aux = []
+
+	for i in (list_imp):
+		count += 1
+		if(count in essential):
+			if(count == list(essential)[len(essential) - 1]):
+				print(bin_lit(i) + '\n\t'),
+			else:
+				print(bin_lit(i) + ' +'),
+
+
+def petrick_method(chart):
+	""" Find the rows with '1' and selects the row containing the biggest quantity of '1's
+	Args: Chart of implicant primes * minterms
+	Returns: list of indexs from the chart that contains '1' and the row found with the most number of '1's
+	"""
+	biggest = 0
+	aux = 0
+	choosen = 0
+
+	P = []
+	for row in range(len(chart)):
+		p_i = []
+		for col in range(len(chart[0])):
+			if(chart[row][col] == 1):
+				aux = aux +1 
+				p_i.append(row)
+			if(aux >= biggest):
+				biggest = aux
+				choosen = row
+		aux = 0
+		P.append(p_i)
+
+
+	return P, choosen
+
+
+def verify_solution(chart):
+	""" Verify if the solution was found, i.e., the chart is all empty
+	Args: chart
+	"""
+	count = 0
+
+	for col in range(len(chart[0])):
+		for row in range(len(chart)):
+			if(chart[row][col] == 1):
+				count += 1
+				return False
+
+	if(count == 0):
+		return True
+
+def delete_covered(chart, delete):
+	""" Delete the rows and columns that the are covered by the row passed as argument
+	Args: Chart of implicant primes * minterms, and row to be deleted
+	"""
+
+	for col in range(len(chart[0])):
+		if (chart[delete][col] == 1):
+			for row in range(len(chart)):
+				chart[row][col] = 0
+
+	return chart
+
+
+def heuristic(chart, final):
+	""" Recursive heuristic to search for the final solution. While the chart is not empty, it searches for the row with the most '1's
+	and deletes the rows and columns covered by that row.s
+	Args: chart, list of minterms
+	Returns: the minterms that are in the final solution
+
+	"""
+	if(verify_solution(chart)):
+		return final
+	
+	else:
+		P, delete = petrick_method(chart)
+		final.add(delete)
+		new_chart = delete_covered(chart, delete)
+		return heuristic(new_chart, final)
+
+def count_literal(final, implic_prime):
+	""" Count the number of literals in the final solution"""
+
+	index = -1
+	literals = 0
+
+	for i in (implic_prime):
+		index += 1
+		if(index in final):
+			for j in list(implic_prime)[index]:
+				if(j != '-'):
+					literals += 1
+	
+	return literals
+	
 
 def main():
 	list_mint = []
-	eq = open('ava.txt', 'r').readline()
-	print(eq)
+
+	eq = open('e.txt', 'r').readline()
+	print('Equacao a ser minimizada: ' + eq)
+
 	# first stage
 	groups = get_minterms(eq, list_mint)
 	
-	print(list_mint)
 
-	implic_prime = get_implicant_prime(groups)
-	print(implic_prime)
+	implic_prime = get_implicant_prime(groups) # implicant primes
 	print_implicant_prime(implic_prime)
 
+	lab_mint = label_minterm(list_mint) 	# list of labels of the minterms
+	lab_imp = list_label_imp(implic_prime)	# list of labels of implicant primes
+
+	# second stage
+   	# make the prime implicant chart
+	chart = np.array([[0 for i in range(len(lab_mint))] for i in range(len(implic_prime))])
+
+	linha = -1
+	for row in list(lab_imp):
+		linha += 1
+		for j in range(len(row)):
+			for k in range(len(lab_mint)):
+				if(list(row)[j] == lab_mint[k]):
+					chart[linha][k] = 1
+
+	es_prime = essential_prime(chart)
+	final = es_prime 	# list of labels of the essential primes
+
+	# 'remove' (replace 1 -> 0) the rows and columns covered by the essential primes
+	for i in range(len(es_prime)):
+		for col in range(len(chart[0])):
+			if (chart[list(es_prime)[i]][col] == 1):
+				for row in range(len(chart)):
+					chart[row][col] = 0
+
+	
+	print('----------------------------------------')
+	print('Solucao Final: \n\t'),
+	if(verify_solution(chart)):
+		print_essential_prime(final, implic_prime)
+	else:
+		final = heuristic(chart, final)
+		print_essential_prime(final, implic_prime)
+
+	print('Numero de Literais: ' + str(count_literal(final, implic_prime)))
+
+					
 if __name__== "__main__":
 	main()
