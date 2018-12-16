@@ -6,8 +6,9 @@ This program takes a sum of products (SOP) of 4 variables as input, and returns 
 `$ python quine-mc.py`
 
 ## 2. Example:
-input: (!A!B!C!D + !A!B!CD + !A!BC!D +!AB!CD + !ABC!D + !ABCD + A!B!C!D + A!B!CD +A!BC!D + ABC!D)
-output: (!B!C + C!D + !ABD) - 7 literals.
+*input*: (!A!B!C!D + !A!B!CD + !A!BC!D +!AB!CD + !ABC!D + !ABCD + A!B!C!D + A!B!CD +A!BC!D + ABC!D)
+
+*output*: (!B!C + C!D + !ABD) - 7 literals.
 
 ### References:
 **Quine-McCluskey.** Available at: [https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm](https://en.wikipedia.org/wiki/Quine%E2%80%93McCluskey_algorithm)
